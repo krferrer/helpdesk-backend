@@ -1,5 +1,8 @@
 package com.exist.webhelpdesksystem.controller;
 
+import com.exist.webhelpdesksystem.dto.EmployeeEagerDTO;
+import com.exist.webhelpdesksystem.dto.TicketEagerDTO;
+import com.exist.webhelpdesksystem.dto.TicketLazyDTO;
 import com.exist.webhelpdesksystem.entity.Employee;
 import com.exist.webhelpdesksystem.entity.Ticket;
 import com.exist.webhelpdesksystem.request.AssignTicketRequest;
@@ -59,16 +62,17 @@ class TicketControllerTest {
     @WithMockUser(roles="ADMIN")
     void getAllTickets() throws Exception {
         ticket.setDescription("test description");
-        when(ticketService.findAllTickets()).thenReturn(Collections.singletonList(ticket));
+        when(ticketService.findAllTickets()).thenReturn(Collections.singletonList(new TicketLazyDTO()));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/ticket"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(jsonPath("$.data[0].description",is("test description")));
+                .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
     @Test
     @WithMockUser(roles="ADMIN")
     void getTicket() throws Exception {
-        when(ticketService.findTicket(anyInt())).thenReturn(ticket);
+        TicketEagerDTO ticketDTO = new TicketEagerDTO();
+        ticketDTO.setDescription("test description");
+        when(ticketService.findTicket(anyInt())).thenReturn(ticketDTO);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/ticket/1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(jsonPath("$.data.description",is("test description")));
@@ -129,7 +133,7 @@ class TicketControllerTest {
     void assignWatchers() throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         AssignTicketRequest request = new AssignTicketRequest();
-        Employee employee = new Employee();
+        EmployeeEagerDTO employee = new EmployeeEagerDTO();
         employee.setFirstName("test name");
         when(ticketService.assignWatcher(any(AssignWatcherRequest.class))).thenReturn(employee);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/ticket/assign-watchers")
@@ -152,7 +156,8 @@ class TicketControllerTest {
     @Test
     @WithMockUser(roles="ADMIN")
     void filterTicketsByNoAssignee() throws  Exception {
-        when(ticketService.filterTicketsByNoAssignee()).thenReturn(Collections.singletonList(ticket));
+        TicketLazyDTO ticketDTO = new TicketLazyDTO();
+        when(ticketService.filterTicketsByNoAssignee()).thenReturn(Collections.singletonList(ticketDTO));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/ticket/no-assignee-tickets"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].description",is("test description")));

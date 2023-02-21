@@ -2,6 +2,9 @@ package com.exist.webhelpdesksystem.service;
 
 import com.exist.webhelpdesksystem.dao.EmployeeDAO;
 import com.exist.webhelpdesksystem.dao.TicketDAO;
+import com.exist.webhelpdesksystem.dto.EmployeeEagerDTO;
+import com.exist.webhelpdesksystem.dto.TicketEagerDTO;
+import com.exist.webhelpdesksystem.dto.TicketLazyDTO;
 import com.exist.webhelpdesksystem.entity.Employee;
 import com.exist.webhelpdesksystem.entity.Ticket;
 import com.exist.webhelpdesksystem.exception.EmployeeNotFoundException;
@@ -12,8 +15,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -24,16 +29,22 @@ public class TicketService {
     @Autowired
     private EmployeeDAO employeeDAO;
 
-
-    public Iterable<Ticket> findAllTickets(){
-        return ticketDAO.findAll();
+    public List<TicketLazyDTO> findAllTickets(){
+        List<Ticket> tickets = ticketDAO.findAll();
+        return tickets.stream().map(ticket -> {
+            TicketLazyDTO ticketLazyDTO = new TicketLazyDTO();
+            return ticketLazyDTO.ticketToLazyDTO(ticket);
+        }).collect(Collectors.toList());
     }
-    public Ticket findTicket(int id){
-        Optional<Ticket> ticket = ticketDAO.findById(id);
-        if(!ticket.isPresent()){
+    public TicketEagerDTO findTicket(int id){
+
+        Optional<Ticket> optionalTicket = ticketDAO.findById(id);
+        if(!optionalTicket.isPresent()){
             throw new TicketNotFoundException("No ticket with the id of "+ id);
         }
-        return ticket.get();
+        System.out.println(optionalTicket.get().getWatchers().size());
+        TicketEagerDTO ticketEagerDTO = new TicketEagerDTO();
+        return ticketEagerDTO.ticketToEagerDTO(optionalTicket.get());
     }
     public Ticket createTicket(TicketCreationRequest ticket){
         Ticket newTicket = new Ticket();
@@ -63,38 +74,37 @@ public class TicketService {
             throw new TicketNotFoundException("Can not delete non-existent ticket with the id of: "+ticketNumber);
         }
         Ticket ticket = optionalTicket.get();
-        ticket.getWatchers().stream().forEach(employee -> {
-            employee.setWatchId(null);
-            employeeDAO.save(employee);
-        });
         ticketDAO.deleteById(ticketNumber);
     }
 
-    public Employee assignWatcher(AssignWatcherRequest reqBody){
-        Optional<Employee> optionalEmployee = employeeDAO.findById(reqBody.getEmployeeId());
-        if(!optionalEmployee.isPresent()){
-            throw new EmployeeNotFoundException("Employee not found");
-        }
-        Employee employee = optionalEmployee.get();
-        if(reqBody.getTicketNumber() == null){
-            employee.setWatchId(null);
-            return employeeDAO.save(employee);
-        }
-        Optional<Ticket> optionalTicket = ticketDAO.findById(reqBody.getTicketNumber());
-        if(!optionalTicket.isPresent()){
-            throw new TicketNotFoundException("Ticket not found");
-        }
-        Ticket ticket = optionalTicket.get();
-        employee.setWatchId(ticket.getTicketNumber());
-        return employeeDAO.save(employee);
+    public EmployeeEagerDTO assignWatcher(AssignWatcherRequest reqBody){
+        Employee employee = employeeDAO.findById(reqBody.getEmployeeId())
+                .orElseThrow(()-> new EmployeeNotFoundException("Non-existent employee with the id of:" + reqBody.getEmployeeId()));
+        List<Ticket> updatedTickets = new ArrayList<>();
+        reqBody.getTicketNumbers().stream().forEach((ticketNumber)->{
+            Ticket foundTicket = ticketDAO.findById(ticketNumber)
+                    .orElseThrow(()-> new TicketNotFoundException("Non-existent ticket with the id of: "+ticketNumber));
+            boolean isTicketDuplicated = updatedTickets.stream().anyMatch((ticketElement)->ticketElement.getTicketNumber() == foundTicket.getTicketNumber());
+            if(!isTicketDuplicated){
+                updatedTickets.add(foundTicket);
+            }
+        });
+        employee.setWatchTickets(updatedTickets);
+        EmployeeEagerDTO employeeEagerDTO = new EmployeeEagerDTO();
+        employeeEagerDTO.employeeToEagerEmployee(employeeDAO.save(employee));
+        return employeeEagerDTO;
     }
 
-    public List<Ticket> filterTicketsByNoAssignee(){
-        return ticketDAO.filterTicketsByNoAssignee();
+    public List<TicketLazyDTO> filterTicketsByNoAssignee(){
+        List<Ticket> tickets = ticketDAO.filterTicketsByNoAssignee();
+        List<TicketLazyDTO> lazyTickets = tickets.stream().map(ticket -> {
+            TicketLazyDTO ticketDTO = new TicketLazyDTO();
+            return ticketDTO.ticketToLazyDTO(ticket);
+        }).collect(Collectors.toList());
+        return lazyTickets;
     }
 
     public Ticket getAssignedTicket(int employeeNumber){
-
         List<Ticket> ticket = getTicketByEmployeeNumber(employeeNumber);
         if(ticket.size() == 0){
             return null;

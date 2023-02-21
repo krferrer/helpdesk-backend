@@ -13,6 +13,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,11 +29,11 @@ public class HelpdeskAuthenticationProvider implements AuthenticationProvider {
     private EmployeeDAO employeeDAO;
 
     @Override
+    @Transactional
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         String requestUsername = authentication.getName();
         String requestPassword = authentication.getCredentials().toString();
         Optional<Employee> optionalEmployee = employeeDAO.findByUsername(requestUsername);
-
         if(!optionalEmployee.isPresent()){
             throw new BadCredentialsException("Invalid credentials");
         }else{

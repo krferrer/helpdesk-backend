@@ -2,6 +2,8 @@ package com.exist.webhelpdesksystem.service;
 
 import com.exist.webhelpdesksystem.dao.EmployeeDAO;
 import com.exist.webhelpdesksystem.dao.TicketDAO;
+import com.exist.webhelpdesksystem.dto.EmployeeEagerDTO;
+import com.exist.webhelpdesksystem.dto.EmployeeLazyDTO;
 import com.exist.webhelpdesksystem.entity.Employee;
 import com.exist.webhelpdesksystem.entity.Ticket;
 import com.exist.webhelpdesksystem.exception.EmployeeDeleteException;
@@ -16,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -62,7 +65,7 @@ class EmployeeServiceTest {
     void findAllEmployee() {
         employee.setFirstName("TestName");
         when(employeeDAO.findAll()).thenReturn(Collections.singletonList(employee));
-        Iterable<Employee> employeeList = employeeService.findAllEmployee();
+        List<EmployeeLazyDTO> employeeList = employeeService.findAllEmployee();
         verify(employeeDAO).findAll();
         assertEquals(employeeList.iterator().next().getFirstName(),"TestName");
     }
@@ -71,7 +74,7 @@ class EmployeeServiceTest {
     void findEmployee() {
         employee.setFirstName("Test name by id");
         when(employeeDAO.findById(anyInt())).thenReturn(Optional.ofNullable(employee));
-        Employee foundEmployee = employeeService.findEmployee(1);
+        EmployeeEagerDTO foundEmployee = employeeService.findEmployee(1);
         verify(employeeDAO).findById(anyInt());
         assertEquals(foundEmployee.getFirstName(),"Test name by id");
     }
@@ -80,7 +83,7 @@ class EmployeeServiceTest {
     void findEmployeeNotFoundTest(){
         assertThrows(EmployeeNotFoundException.class,()->{
             when(employeeDAO.findById(2)).thenReturn(Optional.empty());
-            Employee employee = employeeService.findEmployee(2);
+            EmployeeEagerDTO employee = employeeService.findEmployee(2);
             verify(employeeDAO).findById(2);
         });
     }
@@ -90,7 +93,7 @@ class EmployeeServiceTest {
         employee.setId(1);
         when(employeeDAO.findById(1)).thenReturn(Optional.ofNullable(employee));
         when(employeeDAO.save(any(Employee.class))).thenReturn(employee);
-        Employee updatedEmplyoee = employeeService.updateEmployee(employee);
+        EmployeeEagerDTO updatedEmplyoee = employeeService.updateEmployee(employee);
         verify(employeeDAO).save(any(Employee.class));
         assertEquals(updatedEmplyoee.getId(),1);
     }
@@ -100,7 +103,7 @@ class EmployeeServiceTest {
         assertThrows(EmployeeNotFoundException.class,()->{
             employee.setId(2);
             when(employeeDAO.findById(2)).thenReturn(Optional.empty());
-            Employee updateEmployee = employeeService.updateEmployee(employee);
+            EmployeeEagerDTO updateEmployee = employeeService.updateEmployee(employee);
             verify(employeeDAO).save(any(Employee.class));
             verify(employeeDAO).findById(anyInt());
         });

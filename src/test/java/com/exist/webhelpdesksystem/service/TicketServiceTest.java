@@ -2,6 +2,9 @@ package com.exist.webhelpdesksystem.service;
 
 import com.exist.webhelpdesksystem.dao.EmployeeDAO;
 import com.exist.webhelpdesksystem.dao.TicketDAO;
+import com.exist.webhelpdesksystem.dto.EmployeeEagerDTO;
+import com.exist.webhelpdesksystem.dto.TicketEagerDTO;
+import com.exist.webhelpdesksystem.dto.TicketLazyDTO;
 import com.exist.webhelpdesksystem.entity.Employee;
 import com.exist.webhelpdesksystem.entity.Ticket;
 import com.exist.webhelpdesksystem.exception.EmployeeNotFoundException;
@@ -53,21 +56,21 @@ class TicketServiceTest {
     @Test
     void findAllTickets() {
         when(ticketDAO.findAll()).thenReturn(Collections.singletonList(ticket));
-        Iterable<Ticket> tickets = ticketService.findAllTickets();
+        List<TicketLazyDTO> tickets = ticketService.findAllTickets();
         assertEquals(tickets.iterator().next().getDescription(),"test description");
     }
 
     @Test
     void findTicket() {
         when(ticketDAO.findById(anyInt())).thenReturn(Optional.ofNullable(ticket));
-        Ticket ticket = ticketService.findTicket(1);
+        TicketEagerDTO ticket = ticketService.findTicket(1);
         assertEquals(ticket.getDescription(),"test description");
     }
     @Test
     void findTicket_noTicketFoundTest() {
        assertThrows(TicketNotFoundException.class,()->{
           when(ticketDAO.findById(anyInt())).thenReturn(Optional.empty());
-          Ticket ticket  = ticketService.findTicket(1);
+          TicketEagerDTO ticket  = ticketService.findTicket(1);
        });
     }
 
@@ -108,7 +111,7 @@ class TicketServiceTest {
     @Test
     void deleteTicket() {
         Employee employee = new Employee();
-        ticket.setWatchers(Collections.singletonList(employee));
+        ticket.setWatchers(Collections.singleton(employee));
         when(ticketDAO.findById(anyInt())).thenReturn(Optional.ofNullable(ticket));
         ticketService.deleteTicket(1);
         verify(ticketDAO).findById(1);
@@ -130,7 +133,7 @@ class TicketServiceTest {
         AssignWatcherRequest request = new AssignWatcherRequest();
         when(employeeDAO.save(any(Employee.class))).thenReturn(employee);
         when(employeeDAO.findById(anyInt())).thenReturn(Optional.of(employee));
-        Employee assignedEmployee = ticketService.assignWatcher(request);
+        EmployeeEagerDTO assignedEmployee = ticketService.assignWatcher(request);
         assertEquals("test name",assignedEmployee.getFirstName());
     }
 
@@ -140,7 +143,7 @@ class TicketServiceTest {
         assertThrows(EmployeeNotFoundException.class,()->{
            when(employeeDAO.findById(anyInt())).thenReturn(Optional.empty());
            AssignWatcherRequest request = new AssignWatcherRequest();
-           Employee employee = ticketService.assignWatcher(request);
+           EmployeeEagerDTO employee = ticketService.assignWatcher(request);
            verify(employeeDAO).findById(anyInt());
         });
     }
@@ -151,9 +154,9 @@ class TicketServiceTest {
             Employee employee = new Employee();
             when(employeeDAO.findById(anyInt())).thenReturn(Optional.of(employee));
             AssignWatcherRequest request = new AssignWatcherRequest();
-            request.setTicketNumber(1);
+            request.setEmployeeId(1);
             when(ticketDAO.findById(anyInt())).thenReturn(Optional.empty());
-            Employee assignedWatcher = ticketService.assignWatcher(request);
+            EmployeeEagerDTO assignedWatcher = ticketService.assignWatcher(request);
             verify(employeeDAO).findById(anyInt());
         });
     }
@@ -162,7 +165,7 @@ class TicketServiceTest {
     @Test
     void filterTicketsByNoAssignee() {
         when(ticketDAO.filterTicketsByNoAssignee()).thenReturn(Collections.singletonList(ticket));
-        List<Ticket> tickets = ticketService.filterTicketsByNoAssignee();
+        List<TicketLazyDTO> tickets = ticketService.filterTicketsByNoAssignee();
         assertEquals("test description",tickets.get(0).getDescription());
         verify(ticketDAO).filterTicketsByNoAssignee();
     }

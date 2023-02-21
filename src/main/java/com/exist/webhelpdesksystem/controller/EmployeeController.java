@@ -1,6 +1,7 @@
 package com.exist.webhelpdesksystem.controller;
 
 
+import com.exist.webhelpdesksystem.dto.EmployeeEagerDTO;
 import com.exist.webhelpdesksystem.entity.Employee;
 import com.exist.webhelpdesksystem.request.AssignTicketRequest;
 import com.exist.webhelpdesksystem.service.EmployeeService;
@@ -8,7 +9,11 @@ import com.exist.webhelpdesksystem.utils.ResponseUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -22,9 +27,11 @@ public class EmployeeController {
         return ResponseUtil.generateGenericResponse(HttpStatus.OK,"success",employeeService.findAllEmployee());
     }
 
+
     @GetMapping("/employee/{id}")
     public ResponseEntity<Object> getEmployee(@PathVariable int id){
-        return ResponseUtil.generateGenericResponse(HttpStatus.OK,"success",employeeService.findEmployee(id));
+        EmployeeEagerDTO employeeEagerDTO = employeeService.findEmployee(id);
+        return ResponseUtil.generateGenericResponse(HttpStatus.OK,"success",employeeEagerDTO);
     }
 
     @PostMapping("/employee")

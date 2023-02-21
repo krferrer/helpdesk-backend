@@ -1,10 +1,14 @@
 package com.exist.webhelpdesksystem.entity;
 
 
+import com.exist.webhelpdesksystem.dto.TicketEagerDTO;
+import com.exist.webhelpdesksystem.dto.TicketLazyDTO;
+import com.fasterxml.jackson.annotation.*;
 import lombok.Data;
 
 import javax.persistence.*;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Data
@@ -18,11 +22,11 @@ public class Ticket {
     private Severity severity;
     private Status status;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="assignee")
     private Employee assignee;
 
-    @OneToMany(cascade = {})
-    @JoinColumn(name = "watch_id",referencedColumnName = "ticket_number")
-    private List<Employee> watchers;
+    @ManyToMany(mappedBy = "watchTickets")
+    private Set<Employee> watchers;
+
 }
